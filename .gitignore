@@ -127,3 +127,11 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# PyCharm
+.idea
+
+# big files
+*.zip
+/3rdparty/RePaint/data/
+/3rdparty/RePaint/log/
