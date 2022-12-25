@@ -117,7 +117,7 @@ def main(conf: conf_mgt.Default_Conf):
     print("sampling...")
     dset = 'eval'
     eval_name = conf.get_default_eval_name()
-    num_image_to_process = 20
+    num_image_to_process = 10
     only_final = True if conf.mode == 't_T' else False
     dl = conf.get_dataloader(dset=dset, dsName=eval_name)
 

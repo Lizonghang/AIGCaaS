@@ -61,7 +61,7 @@ def plot(result, mode="t_T", metric="", intv=1, metric_func=None, save_as_file=T
         xs = list(scores.keys())[::intv]
 
         if metric and metric_func is None:
-            ys = [scores[x][metric] for x in xs]
+            ys = [scores[x].get(metric, None) for x in xs]
         elif not metric and metric_func is not None:
             ys = [metric_func(**scores[x]) for x in xs]
         else:
@@ -88,6 +88,9 @@ def custom_score(ssim=1., psnr=1., multi_scale_ssim=1., information_weighted_ssi
             vif_p * fsim * srsim * vsi * dss * haarpsi * \
             (1 - gmsd) * (1 - mdsi) * (1 - multi_scale_gmsd) * \
             (1 - total_variation / 100.) * (1 - brisque / 100.)
+
+    if score == 1.:
+        return 0.
     return max(score, 0.)
 
 
@@ -117,9 +120,14 @@ def calculate_scores(args):
         im_file_ = f"{im_id}.png" if mode == 't_T' else f'step-{x}.png'
         base_path_ = os.path.join(inpainted_path, sub_df) if mode == 't_T' \
             else im_data_path
-        inpainted = imread(os.path.join(base_path_, im_file_))
-        inpainted = reformat_image(inpainted)
-        assert gt.shape == inpainted.shape
+        base_path_ = reformat_path(base_path_)
+
+        try:
+            inpainted = imread(os.path.join(base_path_, im_file_))
+            inpainted = reformat_image(inpainted)
+            assert gt.shape == inpainted.shape
+        except FileNotFoundError:
+            continue
 
         # calculate image quality
         for met_func in metrics_fr:
@@ -142,7 +150,7 @@ if __name__ == "__main__":
     python quality_assessment.py --gt-path log/test_c256_thin/gt \
                                  --inpainted-path log/test_c256_thin/inpainted \
                                  --pkl-path log/test_c256_thin/run_score.pkl \
-                                 --mode t_T --load-pkl 0
+                                 --mode t_T --load-pkl
     """
 
     parser = argparse.ArgumentParser()
@@ -154,7 +162,7 @@ if __name__ == "__main__":
                         default="log/test_c256_nn2/run_score.pkl")
     parser.add_argument("--mode", type=str,
                         default="t_T", choices=["step", "t_T"])
-    parser.add_argument("--load-pkl", type=bool, default=False)
+    parser.add_argument("--load-pkl", action="store_true")
     parser.add_argument("--num-proc", type=int, default=1)
     args = parser.parse_args()
 
