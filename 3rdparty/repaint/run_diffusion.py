@@ -23,8 +23,9 @@ import os
 import argparse
 import torch as th
 import torch.nn.functional as F
-import time
 import conf_mgt
+import numpy as np
+from tqdm import tqdm
 from utils import yamlread
 from guided_diffusion import dist_util
 
@@ -114,18 +115,13 @@ def main(conf: conf_mgt.Default_Conf):
         return model(x, t, y if conf.class_cond else None, gt=gt)
 
     print("sampling...")
-    all_images = []
-
     dset = 'eval'
-
     eval_name = conf.get_default_eval_name()
-
+    num_image_to_process = 20
+    only_final = True if conf.mode == 't_T' else False
     dl = conf.get_dataloader(dset=dset, dsName=eval_name)
 
-    num_image_to_process = 20
-
-    for batch in iter(dl):
-
+    for batch in tqdm(iter(dl)):
         for k in batch.keys():
             if isinstance(batch[k], th.Tensor):
                 batch[k] = batch[k].to(device)
@@ -149,34 +145,47 @@ def main(conf: conf_mgt.Default_Conf):
             )
             model_kwargs["y"] = classes
 
-        sample_fn = (
-            diffusion.p_sample_loop if not conf.use_ddim else diffusion.ddim_sample_loop
-        )
+        t_iter = tqdm(np.arange(10, 260, step=10), leave=False) if conf.mode == 't_T' \
+            else [conf.schedule_jump_params['t_T']]
 
-        result = sample_fn(
-            model_fn,
-            (batch_size, 3, conf.image_size, conf.image_size),
-            clip_denoised=conf.clip_denoised,
-            model_kwargs=model_kwargs,
-            cond_fn=cond_fn,
-            device=device,
-            progress=show_progress,
-            conf=conf
-        )
+        for T_ in t_iter:
+            if conf.mode == 't_T':
+                conf.schedule_jump_params['t_T'] = T_.item()
+                _, diffusion = create_model_and_diffusion(
+                    **select_args(conf, model_and_diffusion_defaults().keys()), conf=conf
+                )
 
-        srs = toU8(result['sample'])
-        gts = toU8(result['gt'])
-        lrs = toU8(result.get('gt') * model_kwargs.get('gt_keep_mask') + (-1) *
-                   th.ones_like(result.get('gt')) * (1 - model_kwargs.get('gt_keep_mask')))
-        gt_keep_masks = toU8((model_kwargs.get('gt_keep_mask') * 2 - 1))
-        step = result['step']
+            sample_fn = (
+                diffusion.p_sample_loop if not conf.use_ddim else diffusion.ddim_sample_loop
+            )
 
-        conf.eval_imswrite(
-            srs=srs, gts=gts, lrs=lrs, gt_keep_masks=gt_keep_masks, step=step,
-            img_names=batch['GT_name'], dset=dset, name=eval_name, verify_same=False)
+            result = sample_fn(
+                model_fn,
+                (batch_size, 3, conf.image_size, conf.image_size),
+                clip_denoised=conf.clip_denoised,
+                model_kwargs=model_kwargs,
+                cond_fn=cond_fn,
+                device=device,
+                progress=show_progress,
+                only_final=only_final,
+                conf=conf
+            )
 
-        # release stored image cache
-        del result, srs, gts, lrs, gt_keep_masks, step
+            srs = toU8(result['sample'])
+            gts = toU8(result['gt'])
+            lrs = toU8(result.get('gt') * model_kwargs.get('gt_keep_mask') + (-1) *
+                       th.ones_like(result.get('gt')) * (1 - model_kwargs.get('gt_keep_mask')))
+            gt_keep_masks = toU8((model_kwargs.get('gt_keep_mask') * 2 - 1))
+            step = result.get('step', None)
+
+            conf.eval_imswrite(
+                srs=srs, gts=gts, lrs=lrs, gt_keep_masks=gt_keep_masks, step=step, t_T=T_,
+                img_names=batch['GT_name'], dset=dset, name=eval_name, verify_same=False)
+
+            # release stored image cache
+            del result, srs, gts, lrs, gt_keep_masks
+            if conf.mode == 't_T': del diffusion
+            if conf.mode == 'step': del step
 
         num_image_to_process -= 1
         if num_image_to_process == 0:
@@ -188,6 +197,7 @@ def main(conf: conf_mgt.Default_Conf):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--conf_path', type=str, required=False, default=None)
+    parser.add_argument('--mode', type=str, default='t_T', choices=['t_T', 'step'])
     args = vars(parser.parse_args())
 
     conf_arg = conf_mgt.conf_base.Default_Conf()

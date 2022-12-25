@@ -31,24 +31,33 @@ def imread(path):
     return pil_image
 
 
-def reformat(x):
+def reformat_image(x):
     np_x = np.array(x) / 255.
     np_x = np_x.swapaxes(0, 2)
     np_x = np.expand_dims(np_x, axis=0)
     return torch.Tensor(np_x)
 
 
-def plot(result, metric="", intv=100, metric_func=None, save_as_file=True):
+def reformat_path(path):
+    if path[-1] not in ['/', '\\']:
+        return path + '/'
+    elif path[-1] == '\\':
+        return path[:-1] + '/'
+    else:
+        return path
+
+
+def plot(result, mode="t_T", metric="", intv=1, metric_func=None, save_as_file=True):
     met_name = "score" if metric_func else f"{metric} score"
+    xlabel_name = "t_T" if mode == "t_T" else "num of transitions"
 
     plt.figure(metric, figsize=(5, 4))
-    plt.xlabel("num of transitions", fontsize=label_fontsize)
+    plt.xlabel(xlabel_name, fontsize=label_fontsize)
     plt.ylabel(met_name, fontsize=label_fontsize)
     plt.xticks(fontsize=tick_fontsize)
     plt.yticks(fontsize=tick_fontsize)
 
     for im_id_, scores in result.items():
-
         xs = list(scores.keys())[::intv]
 
         if metric and metric_func is None:
@@ -83,36 +92,44 @@ def custom_score(ssim=1., psnr=1., multi_scale_ssim=1., information_weighted_ssi
 
 
 def calculate_scores(args):
-    im_id, gt_path, inpainted_path, metrics_fr, metrics_nr = args
+    im_id, mode, gt_path, inpainted_path, metrics_fr, metrics_nr = args
     res_ = {}
 
     # read origin image
-    origin_image_path = os.path.join(gt_path, f"{im_id}.png")
+    gt_path = reformat_path(gt_path)
+    inpainted_path = reformat_path(inpainted_path)
+
+    im_file_ = f"{im_id}.png"
+    origin_image_path = os.path.join(gt_path, im_file_)
     gt = imread(origin_image_path)
-    gt = reformat(gt)
+    gt = reformat_image(gt)
     assert gt.shape[1] == 3
 
-    im_data_path = os.path.join(inpainted_path, im_id)
+    im_data_path = inpainted_path if mode == "t_T" \
+        else os.path.join(inpainted_path, im_id)
 
-    # for the inpainted image in each step
-    for file_ in tqdm(os.listdir(im_data_path), leave=True):
-        n_step_ = int(file_.replace("step-", "").replace(".png", ""))
-        res_[n_step_] = {}
+    # for the inpainted image over different t_T
+    for sub_df in tqdm(os.listdir(im_data_path), leave=True):
+        x = int(sub_df[4:]) if mode == "t_T" \
+            else int(sub_df.replace("step-", "").replace(".png", ""))
+        res_[x] = {}
 
-        inpainted = imread(os.path.join(im_data_path, file_))
-        inpainted = reformat(inpainted)
+        base_path_ = os.path.join(inpainted_path, sub_df) if mode == "t_T" \
+            else im_data_path
+        inpainted = imread(os.path.join(base_path_, im_file_))
+        inpainted = reformat_image(inpainted)
         assert gt.shape == inpainted.shape
 
         # calculate image quality
         for met_func in metrics_fr:
             met_name = met_func.__name__
             score = met_func(gt, inpainted)
-            res_[n_step_][met_name] = score.item()
+            res_[x][met_name] = score.item()
 
         for met_func in metrics_nr:
             met_name = met_func.__name__
             score = met_func(inpainted)
-            res_[n_step_][met_name] = score.item()
+            res_[x][met_name] = score.item()
 
     return im_id, res_
 
@@ -125,6 +142,8 @@ if __name__ == "__main__":
                         default="log/test_c256_nn2/inpainted")
     parser.add_argument("--pkl-path", type=str,
                         default="log/test_c256_nn2/run_score.pkl")
+    parser.add_argument("--mode", type=str,
+                        default="t_T", choices=["step", "t_T"])
     parser.add_argument("--load-pkl", type=bool, default=False)
     parser.add_argument("--num-proc", type=int, default=1)
     args = parser.parse_args()
@@ -136,12 +155,20 @@ if __name__ == "__main__":
         piq.haarpsi, piq.mdsi, piq.multi_scale_gmsd]
     metrics_nr = [piq.total_variation, piq.brisque]
 
+    vis_metrics = [
+        "ssim", "psnr", "multi_scale_ssim", "information_weighted_ssim",
+        "vif_p", "fsim", "srsim", "gmsd", "vsi", "dss", "haarpsi",
+        "mdsi", "multi_scale_gmsd", "total_variation", "brisque"]
+
     image_ids = [im_name_[:6] for im_name_ in os.listdir(args.gt_path)]
 
     if not (args.load_pkl and os.path.exists(args.pkl_path)):
         if args.num_proc > 1:
+            print("[WARNING] Use num_proc>1 with caution because of "
+                  "possible lack of shared memory on your physical machine.")
+
             # multi-core processing
-            mp_args = [(im_id_, args.gt_path, args.inpainted_path,
+            mp_args = [(im_id_, args.mode, args.gt_path, args.inpainted_path,
                         metrics_fr, metrics_nr) for im_id_ in image_ids]
             with Pool(args.num_proc) as p:
                 result_multiprocess = p.map(calculate_scores, mp_args)
@@ -156,7 +183,7 @@ if __name__ == "__main__":
             result = {}
             for im_id_ in image_ids:
                 _, res_ = calculate_scores((
-                    im_id_, args.gt_path, args.inpainted_path, metrics_fr, metrics_nr))
+                    im_id_, args.mode, args.gt_path, args.inpainted_path, metrics_fr, metrics_nr))
                 result[im_id_] = res_
 
         # save as pickle file
@@ -166,12 +193,6 @@ if __name__ == "__main__":
     # load from pickle file
     with open(args.pkl_path, "rb") as fp:
         result = pickle.load(fp)
-
-    # visualize metrics
-    vis_metrics = [
-        "ssim", "psnr", "multi_scale_ssim", "information_weighted_ssim",
-        "vif_p", "fsim", "srsim", "gmsd", "vsi", "dss", "haarpsi",
-        "mdsi", "multi_scale_gmsd", "total_variation", "brisque"]
 
     for metric in vis_metrics:
         plot(result, metric=metric)

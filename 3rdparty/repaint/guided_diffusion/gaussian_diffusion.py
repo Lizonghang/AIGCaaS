@@ -418,6 +418,7 @@ class GaussianDiffusion:
         model_kwargs=None,
         device=None,
         progress=True,
+        only_final=True,
         conf=None
     ):
         """
@@ -437,6 +438,7 @@ class GaussianDiffusion:
         :param device: if specified, the device to create the samples on.
                        If not specified, use a model parameter's device.
         :param progress: if True, show a tqdm progress bar.
+        :param only_final: if True, return only the final sample.
         :return: a non-differentiable batch of samples.
         """
         final = None
@@ -452,14 +454,17 @@ class GaussianDiffusion:
             progress=progress,
             conf=conf
         ):
-            if not final:
-                final = copy.deepcopy(sample)
-                final['sample'] = [final['sample']]
-                final['step'] = [step]
+            if only_final:
+                final = sample
             else:
-                final['sample'].append(
-                    copy.deepcopy(sample['sample']))
-                final['step'].append(step)
+                if not final:
+                    final = copy.deepcopy(sample)
+                    final['sample'] = [final['sample']]
+                    final['step'] = [step]
+                else:
+                    final['sample'].append(
+                        copy.deepcopy(sample['sample']))
+                    final['step'].append(step)
 
         return final
 
@@ -508,7 +513,7 @@ class GaussianDiffusion:
             time_pairs = list(zip(times[:-1], times[1:]))
             if progress:
                 from tqdm.auto import tqdm
-                time_pairs = tqdm(time_pairs)
+                time_pairs = tqdm(time_pairs, leave=False)
 
             for i, (t_last, t_cur) in enumerate(time_pairs):
                 idx_wall += 1

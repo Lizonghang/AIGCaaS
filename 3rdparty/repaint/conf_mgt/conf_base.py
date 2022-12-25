@@ -35,12 +35,14 @@ def to_file_ext(img_names, ext):
     return img_names_out
 
 
-def write_images(imgs, img_names, dir_path, step=None):
+def write_images(imgs, img_names, dir_path, step=None, t_T=None):
     os.makedirs(dir_path, exist_ok=True)
 
     if type(imgs) is np.ndarray:
         for image_name, image in zip(img_names, imgs):
-            out_path = os.path.join(dir_path, image_name)
+            base_path_ = os.path.join(dir_path, f"t_T_{t_T}") if t_T else dir_path
+            os.makedirs(base_path_, exist_ok=True)
+            out_path = os.path.join(base_path_, image_name)
             imwrite(img=image, path=out_path)
 
     elif type(imgs) is list:
@@ -97,7 +99,7 @@ class Default_Conf(NoneDict):
         return 'cuda' if torch.cuda.is_available() else 'cpu'
 
     def eval_imswrite(self, srs=None, img_names=None, dset=None, name=None, ext='png', lrs=None,
-                      gts=None, gt_keep_masks=None, step=None, verify_same=True):
+                      gts=None, gt_keep_masks=None, step=None, t_T=None, verify_same=True):
         img_names = to_file_ext(img_names, ext)
 
         if dset is None:
@@ -107,7 +109,7 @@ class Default_Conf(NoneDict):
 
         if srs is not None:
             sr_dir_path = expanduser(self['data'][dset][name]['paths']['srs'])
-            write_images(srs, img_names, sr_dir_path, step)
+            write_images(srs, img_names, sr_dir_path, step, t_T)
 
         if gt_keep_masks is not None:
             mask_dir_path = expanduser(
