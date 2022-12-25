@@ -105,16 +105,17 @@ def calculate_scores(args):
     gt = reformat_image(gt)
     assert gt.shape[1] == 3
 
-    im_data_path = inpainted_path if mode == "t_T" \
+    im_data_path = inpainted_path if mode == 't_T' \
         else os.path.join(inpainted_path, im_id)
 
     # for the inpainted image over different t_T
     for sub_df in tqdm(os.listdir(im_data_path), leave=True):
-        x = int(sub_df[4:]) if mode == "t_T" \
+        x = int(sub_df[4:]) if mode == 't_T' \
             else int(sub_df.replace("step-", "").replace(".png", ""))
         res_[x] = {}
 
-        base_path_ = os.path.join(inpainted_path, sub_df) if mode == "t_T" \
+        im_file_ = f"{im_id}.png" if mode == 't_T' else f'step-{x}.png'
+        base_path_ = os.path.join(inpainted_path, sub_df) if mode == 't_T' \
             else im_data_path
         inpainted = imread(os.path.join(base_path_, im_file_))
         inpainted = reformat_image(inpainted)

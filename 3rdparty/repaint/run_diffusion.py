@@ -196,7 +196,7 @@ def main(conf: conf_mgt.Default_Conf):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--conf_path', type=str, required=False, default=None)
+    parser.add_argument('--conf-path', type=str, required=False, default=None)
     parser.add_argument('--mode', type=str, default='t_T', choices=['t_T', 'step'])
     args = vars(parser.parse_args())
 
