@@ -195,6 +195,12 @@ def main(conf: conf_mgt.Default_Conf):
 
 
 if __name__ == "__main__":
+    """
+    Use case:
+    
+    python run_diffusion.py --conf-path confs/test_c256_thin.yml --mode t_T
+    """
+
     parser = argparse.ArgumentParser()
     parser.add_argument('--conf-path', type=str, required=False, default=None)
     parser.add_argument('--mode', type=str, default='t_T', choices=['t_T', 'step'])

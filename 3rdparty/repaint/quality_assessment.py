@@ -136,6 +136,15 @@ def calculate_scores(args):
 
 
 if __name__ == "__main__":
+    """
+    Use case:
+
+    python quality_assessment.py --gt-path log/test_c256_thin/gt \
+                                 --inpainted-path log/test_c256_thin/inpainted \
+                                 --pkl-path log/test_c256_thin/run_score.pkl \
+                                 --mode t_T --load-pkl 0
+    """
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--gt-path", type=str,
                         default="log/test_c256_nn2/gt")
