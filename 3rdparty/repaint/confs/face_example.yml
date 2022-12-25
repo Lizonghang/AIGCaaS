@@ -59,7 +59,7 @@ n_jobs: 1
 print_estimated_vars: true
 inpa_inj_sched_prev_cumnoise: false
 schedule_jump_params:
-  t_T: 20
+  t_T: 250
   n_sample: 1
   jump_length: 10
   jump_n_sample: 10
