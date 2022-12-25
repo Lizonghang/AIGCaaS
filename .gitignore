@@ -131,7 +131,11 @@ dmypy.json
 # PyCharm
 .idea
 
+# OS
+.DS_Store
+
 # big files
 *.zip
 /3rdparty/RePaint/data/
 /3rdparty/RePaint/log/
+/3rdparty/repaint/output/

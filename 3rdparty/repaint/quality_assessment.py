@@ -38,7 +38,7 @@ def reformat(x):
     return torch.Tensor(np_x)
 
 
-def plot(result, metric="", intv=100, metric_func=None):
+def plot(result, metric="", intv=100, metric_func=None, save_as_file=True):
     met_name = "score" if metric_func else f"{metric} score"
 
     plt.figure(metric, figsize=(5, 4))
@@ -61,7 +61,15 @@ def plot(result, metric="", intv=100, metric_func=None):
         plt.scatter(xs, ys, s=50, marker='o', c="b", alpha=0.5)
 
     plt.tight_layout()
-    plt.show()
+
+    if save_as_file:
+        save_dir = "./output"
+        os.makedirs(save_dir, exist_ok=True)
+        file_path = os.path.join(save_dir, f"score_{metric}.png")
+        plt.savefig(file_path)
+        print(f"File saved at {file_path}")
+    else:
+        plt.show()
 
 
 def custom_score(ssim=1., psnr=1., multi_scale_ssim=1., information_weighted_ssim=1.,
@@ -99,12 +107,12 @@ def calculate_scores(args):
         for met_func in metrics_fr:
             met_name = met_func.__name__
             score = met_func(gt, inpainted)
-            res_[n_step_][met_name] = score
+            res_[n_step_][met_name] = score.item()
 
         for met_func in metrics_nr:
             met_name = met_func.__name__
             score = met_func(inpainted)
-            res_[n_step_][met_name] = score
+            res_[n_step_][met_name] = score.item()
 
     return im_id, res_
 
@@ -117,7 +125,8 @@ if __name__ == "__main__":
                         default="log/test_c256_nn2/inpainted")
     parser.add_argument("--pkl-path", type=str,
                         default="log/test_c256_nn2/run_score.pkl")
-    parser.add_argument("--num-proc", type=int, default=8)
+    parser.add_argument("--load-pkl", type=bool, default=False)
+    parser.add_argument("--num-proc", type=int, default=1)
     args = parser.parse_args()
 
     metrics_fr = [
@@ -129,33 +138,40 @@ if __name__ == "__main__":
 
     image_ids = [im_name_[:6] for im_name_ in os.listdir(args.gt_path)]
 
-    # process step outputs of each image using multiprocess
-    mp_args = [(im_id_, args.gt_path, args.inpainted_path,
-                metrics_fr, metrics_nr) for im_id_ in image_ids]
-    with Pool(args.num_proc) as p:
-        result_multiprocess = p.map(calculate_scores, mp_args)
-    p.close()
-    p.join()
+    if not (args.load_pkl and os.path.exists(args.pkl_path)):
+        if args.num_proc > 1:
+            # multi-core processing
+            mp_args = [(im_id_, args.gt_path, args.inpainted_path,
+                        metrics_fr, metrics_nr) for im_id_ in image_ids]
+            with Pool(args.num_proc) as p:
+                result_multiprocess = p.map(calculate_scores, mp_args)
+            p.close()
+            p.join()
 
-    # reformat result structure
-    result = {}
-    for im_id_, res_ in result_multiprocess:
-        result[im_id_] = res_
+            # reformat result structure
+            result = {}
+            for im_id_, res_ in result_multiprocess:
+                result[im_id_] = res_
+        else:
+            result = {}
+            for im_id_ in image_ids:
+                _, res_ = calculate_scores((
+                    im_id_, args.gt_path, args.inpainted_path, metrics_fr, metrics_nr))
+                result[im_id_] = res_
 
-    # save as pickle file
-    with open(args.pkl_path, "wb") as fp:
-        pickle.dump(result, fp)
+        # save as pickle file
+        with open(args.pkl_path, "wb") as fp:
+            pickle.dump(result, fp)
 
-    # # load from pickle file
-    # with open(args.pkl_path, "rb") as fp:
-    #     result = pickle.load(fp)
+    # load from pickle file
+    with open(args.pkl_path, "rb") as fp:
+        result = pickle.load(fp)
 
-    # # visualize metrics
-    # plot(result, metric_func=custom_score)
-    #
-    # show_metrics = [
-    #     "ssim", "psnr", "multi_scale_ssim", "information_weighted_ssim",
-    #     "vif_p", "fsim", "srsim", "gmsd", "vsi", "dss", "haarpsi",
-    #     "mdsi", "multi_scale_gmsd", "total_variation", "brisque"]
-    # for metric in show_metrics:
-    #     plot(result, metric=metric)
+    # visualize metrics
+    vis_metrics = [
+        "ssim", "psnr", "multi_scale_ssim", "information_weighted_ssim",
+        "vif_p", "fsim", "srsim", "gmsd", "vsi", "dss", "haarpsi",
+        "mdsi", "multi_scale_gmsd", "total_variation", "brisque"]
+
+    for metric in vis_metrics:
+        plot(result, metric=metric)
