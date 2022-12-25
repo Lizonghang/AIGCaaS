@@ -208,5 +208,5 @@ if __name__ == "__main__":
 
     conf_arg = conf_mgt.conf_base.Default_Conf()
     conf_arg.update(yamlread(args.get('conf_path')))
-    conf_arg.update(yamlread(args.get('mode')))
+    conf_arg.update({'mode': args.get('mode')})
     main(conf_arg)
