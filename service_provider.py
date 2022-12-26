@@ -43,8 +43,17 @@ class ServiceProvider:
     def norm_available_t(self):
         return self.available_t / self._total_t
 
-    def expected_reward(self, t):
-        return REWARD(*self._reward_coefs, t)
+    def release_finished_tasks(self):
+        self._terminated_tasks['finished'].append(None)
+
+    def assign_task(self, task):
+        # Check if enough resources are available
+        if task.t > self.available_t:
+            # crash or discard?
+            return -1
+
+        self._serving_tasks.append(task)
+        return REWARD(*self._reward_coefs, task.t)
 
     def reset(self):
         self._serving_tasks.clear()
@@ -58,5 +67,15 @@ class ServiceProvider:
 
 
 if __name__ == "__main__":
+    from user import User
+    from task import TaskGenerator
+
     service_provider = ServiceProvider(0, 0)
-    print(service_provider.vector)
+
+    user = User(0, 0)
+    task_generator = TaskGenerator()
+    task = next(task_generator)
+    user.add_task(task)
+
+    reward = service_provider.assign_task(user.task)
+    print(reward)
