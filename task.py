@@ -39,6 +39,10 @@ class Task:
         self._task_type = TaskType(type_id)
 
     @property
+    def arrival_time(self):
+        return self._arrival_time
+
+    @property
     def task_type(self):
         return self._task_type.one_hot
 
@@ -85,13 +89,14 @@ class Task:
         self._crash_time = curr_time
         self._crashed = True
 
-    def progress(self, curr_time):
+    def progress(self, curr_time=None):
         if self._finished:
             return 1.
 
         if self._crashed:
             return (self._crash_time - self._arrival_time) / self._runtime
 
+        assert curr_time, "Current time unknown"
         return (curr_time - self._arrival_time) / self._runtime
 
 
@@ -101,20 +106,31 @@ class TaskGenerator:
         self._task_id_counter = 0
         self._lambda = LAMBDA
         self._total_time = TOTAL_TIME
+        self._total_task = 0
+        self._task_arrival_time = None
+        self._t_range = T_RANGE
+        self.reset()
+
+    def reset(self):
+        self._task_id_counter = 0
         self._total_task = np.random.poisson(self._lambda * self._total_time)
         self._task_arrival_time = np.hstack(
             [[0], np.sort(np.random.random(self._total_task) * self._total_time)])
         self._task_arrival_time = self._task_arrival_time.astype(np.int64)
-        self._t_range = T_RANGE
+        assert self._total_task == len(self._task_arrival_time)
 
     def __next__(self):
         task_id = self._task_id_counter
+        assert task_id < self._total_task, "number of tasks out of range"
+
         arrival_time = self._task_arrival_time[task_id]
         required_t = np.random.choice(self._t_range)
+
         task = Task(task_id, arrival_time, required_t)
 
         self._task_id_counter += 1
-        return task
+        terminate = True if self._task_id_counter == self._total_task else False
+        return task, terminate
 
 
 if __name__ == "__main__":
@@ -122,7 +138,7 @@ if __name__ == "__main__":
     task_generator = TaskGenerator()
 
     # Create 100 tasks that satisfy the arrival time of Poisson distribution
-    tasks = [next(task_generator) for _ in range(100)]
+    tasks = [next(task_generator)[0] for _ in range(100)]
 
     # Test task type
     task_type = TaskType(0)

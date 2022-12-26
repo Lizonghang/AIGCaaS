@@ -1,32 +1,35 @@
-from user import User
-from service_provider import ServiceProvider
-from config import *
+import gym
+from swarm_manager import SwarmManager
 
 
 GLOBAL_CLOCK = 0
 
 
-class AIGCEnv:
+class AIGCEnv(gym.Env):
 
-    def __init__(self, n_users, n_service_providers):
-        self._n_users = n_users
-        self._n_service_providers = n_service_providers
-        self._users = []
-        self._service_providers = []
+    def __init__(self):
+        self._swarm_manager = SwarmManager()
 
-        self.create_env()
+    def reset(self):
+        self._swarm_manager.reset()
 
-    def create_env(self):
-        self._users = [
-            User(uid_) for uid_ in np.arange(self._n_users)]
-        self._service_providers = [
-            ServiceProvider(sid_) for sid_ in np.arange(self._n_service_providers)]
+    def step(self, action):
+        pass
+
+    def render(self, mode="human"):
+        pass
+
+    def close(self):
+        pass
+
+    def seed(self, seed=None):
+        return
 
 
-def make_env(*args, **kwargs):
-    return AIGCEnv(*args, **kwargs)
+def make_env():
+    return AIGCEnv()
 
 
 if __name__ == "__main__":
-    n_users, n_service_providers = 10, 3
-    env = make_env(n_users, n_service_providers)
+    env = make_env()
+    print(env)

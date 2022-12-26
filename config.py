@@ -35,5 +35,6 @@ GPU_MEM_OCCUPY = 4000 * 2 ** 20  # 7468MB GPU memory occupation per image and pe
 GPU_UTILITY = 1.  # GPU-Util of 100%, full load
 CPU_MEM_OCCUPY = 2000 * 2 ** 20  # 4980MB CPU memory occupation per image and per run
 CPU_UTILITY = 0.1  # CPU-Util of 10%
+CRASH_PENALTY_COEF = 1.
 # Runtime for each image. The value is proportional to t_T in the diffusion algorithm.
 RUNTIME = lambda t: (0.001 * t ** 2 + 2.5 * t - 14) * 60

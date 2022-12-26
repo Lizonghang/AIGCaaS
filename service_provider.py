@@ -27,6 +27,10 @@ class ServiceProvider:
         return np.sqrt(np.square(self._loc - user._loc).sum())
 
     @property
+    def id(self):
+        return self._sid
+
+    @property
     def used_t(self):
         return sum([task.t for task in self._serving_tasks])
 
@@ -43,17 +47,33 @@ class ServiceProvider:
     def norm_available_t(self):
         return self.available_t / self._total_t
 
-    def release_finished_tasks(self):
-        self._terminated_tasks['finished'].append(None)
+    def check_finished(self, curr_time):
+        num_finished = 0
+        for running_task_ in self._serving_tasks[:]:
+            if running_task_.can_finished(curr_time):
+                running_task_.set_finished()
+                self._terminated_tasks['finished'].append(running_task_)
+                self._serving_tasks.remove(running_task_)
+                num_finished += 1
+        return num_finished
 
-    def assign_task(self, task):
-        # Check if enough resources are available
+    def assign_task(self, task, curr_time):
+        reward = REWARD(*self._reward_coefs, task.t)
+
+        # No enough resources, server crashes
         if task.t > self.available_t:
-            # crash or discard?
-            return -1
+            penalty = reward
+            for running_task_ in self._serving_tasks:
+                running_task_.crash(curr_time)
+                self._terminated_tasks['crashed'].append(running_task_)
+                penalty += (1 - running_task_.progress()) * CRASH_PENALTY_COEF
+            self._serving_tasks.clear()
+            return -penalty
 
+        # Allocate resources for this task
         self._serving_tasks.append(task)
-        return REWARD(*self._reward_coefs, task.t)
+        
+        return reward
 
     def reset(self):
         self._serving_tasks.clear()
@@ -74,8 +94,9 @@ if __name__ == "__main__":
 
     user = User(0, 0)
     task_generator = TaskGenerator()
-    task = next(task_generator)
+    task = next(task_generator)[0]
     user.add_task(task)
 
-    reward = service_provider.assign_task(user.task)
+    curr_time = 10000
+    reward = service_provider.assign_task(user.task, curr_time)
     print(reward)
