@@ -23,11 +23,6 @@ def get_args():
     parser.add_argument("--training-num", type=int, default=1)
     parser.add_argument("--test-num", type=int, default=10)
 
-    # Environment
-    parser.add_argument("--n-users", type=int, default=100)
-    parser.add_argument("--n-service-providers", type=int, default=10)
-    parser.add_argument("--n_tasks", type=int, default=10000)
-
     # Logger and resume training
     parser.add_argument("--logdir", type=str, default="log")
     parser.add_argument("--resume-path", type=str, default=None)
