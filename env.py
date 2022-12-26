@@ -1,10 +1,9 @@
-import time
 from user import User
 from service_provider import ServiceProvider
 from config import *
 
 
-GLOBAL_CLOCK = time.time()
+GLOBAL_CLOCK = 0
 
 
 class AIGCEnv:
