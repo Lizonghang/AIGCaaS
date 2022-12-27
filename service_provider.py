@@ -15,6 +15,7 @@ class ServiceProvider:
         self._serving_tasks = []
         self._terminated_tasks = {'crashed': [], 'finished': []}
         self._total_t = np.random.choice(TOTAL_T_RANGE)
+        self._num_crashed = 0
 
         # The following info are not currently considered
         self._loc = np.random.randint(*LOCATION_RANGE, size=(1, 2))
@@ -29,6 +30,10 @@ class ServiceProvider:
     @property
     def id(self):
         return self._sid
+
+    @property
+    def total_t(self):
+        return self._total_t
 
     @property
     def used_t(self):
@@ -47,6 +52,17 @@ class ServiceProvider:
     def norm_available_t(self):
         return self.available_t / self._total_t
 
+    def task_summary(self):
+        num_serving = len(self._serving_tasks)
+        num_crashed = len(self._terminated_tasks['crashed'])
+        num_finished = len(self._terminated_tasks['finished'])
+        return {
+            "total": num_serving + num_crashed + num_finished,
+            "serving": num_serving,
+            "crashed": num_crashed,
+            "finished": num_finished
+        }
+
     def check_finished(self, curr_time):
         num_finished = 0
         for running_task_ in self._serving_tasks[:]:
@@ -62,12 +78,13 @@ class ServiceProvider:
 
         # No enough resources, server crashes
         if task.t > self.available_t:
-            penalty = reward
+            penalty = CRASH_PENALTY_COEF
             for running_task_ in self._serving_tasks:
                 running_task_.crash(curr_time)
                 self._terminated_tasks['crashed'].append(running_task_)
                 penalty += (1 - running_task_.progress()) * CRASH_PENALTY_COEF
             self._serving_tasks.clear()
+            self._num_crashed += 1
             return -penalty
 
         # Allocate resources for this task
@@ -79,11 +96,26 @@ class ServiceProvider:
         self._serving_tasks.clear()
         self._terminated_tasks['crashed'].clear()
         self._terminated_tasks['finished'].clear()
+        self._num_crashed = 0
 
     @property
     def vector(self):
         # (total_t, available_t)
         return np.hstack([self.norm_total_t, self.norm_available_t])
+
+    @property
+    def info(self):
+        return {
+            'id': self.id,
+            'task_type': self._task_type,
+            'task_serving': len(self._serving_tasks),
+            'task_finished': len(self._terminated_tasks['finished']),
+            'task_crashed': len(self._terminated_tasks['crashed']),
+            'total_t': self._total_t,
+            'used_t': self.used_t,
+            'available_t': self.available_t,
+            'num_crashed': self._num_crashed
+        }
 
 
 if __name__ == "__main__":

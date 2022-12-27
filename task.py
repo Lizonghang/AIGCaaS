@@ -117,7 +117,7 @@ class TaskGenerator:
         self._task_arrival_time = np.hstack(
             [[0], np.sort(np.random.random(self._total_task) * self._total_time)])
         self._task_arrival_time = self._task_arrival_time.astype(np.int64)
-        assert self._total_task == len(self._task_arrival_time)
+        self._total_task = len(self._task_arrival_time)
 
     def __next__(self):
         task_id = self._task_id_counter

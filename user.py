@@ -27,6 +27,7 @@ class User:
 
     @property
     def vector(self):
+        assert self._task, "No task assigned"
         return self._task.vector
 
     def reset(self):

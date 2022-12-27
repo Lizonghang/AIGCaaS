@@ -1,10 +1,14 @@
 import numpy as np
+import torch
 
+SEED = 0
 np.random.seed(0)
+torch.manual_seed(0)
 
 # For service provider
 NUM_SERVICE_PROVIDERS = 20  # number of service providers
-TOTAL_T_RANGE = np.arange(500, 2000, step=100)  # range of total t_T available for service providers
+TOTAL_T_RANGE = np.arange(500, 1000, step=100)  # range of total t_T available for service
+# providers
 NUM_CPUS = 32  # number of logical cpu cores available
 NUM_GPUS = 8  # number of graphic cards available
 CPU_MEM = 128 * 2 ** 30  # total cpu memory available
