@@ -81,6 +81,11 @@ class SwarmManager:
         return sum([service_provider.used_t
                     for service_provider in self._service_providers])
 
+    @property
+    def most_availble_service_provider(self):
+        return np.argmax([service_provider.available_t
+                          for service_provider in self._service_providers])
+
     def monitor(self):
         os.system("cls")
         WIDTH = 98
