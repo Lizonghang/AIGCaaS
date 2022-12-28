@@ -92,6 +92,7 @@ def get_args():
     parser.add_argument('--logdir', type=str, default='log')
     parser.add_argument('--render', type=float, default=0.01)
     parser.add_argument('--device', type=str, default='cpu')
+    parser.add_argument('--watch', action='store_true')
     args = parser.parse_known_args()[0]
     return args
 
@@ -122,22 +123,23 @@ def main(args=get_args()):
     logger = TensorboardLogger(writer)
 
     # trainer
-    result = onpolicy_trainer(
-        policy,
-        train_collector,
-        test_collector,
-        args.epoch,
-        args.step_per_epoch,
-        args.repeat_per_collect,
-        args.test_num,
-        args.batch_size,
-        episode_per_collect=args.episode_per_collect,
-        logger=logger,
-    )
+    if not args.watch:
+        result = onpolicy_trainer(
+            policy,
+            train_collector,
+            test_collector,
+            args.epoch,
+            args.step_per_epoch,
+            args.repeat_per_collect,
+            args.test_num,
+            args.batch_size,
+            episode_per_collect=args.episode_per_collect,
+            logger=logger
+        )
+        pprint.pprint(result)
 
     # Watch the performance
     if __name__ == '__main__':
-        pprint.pprint(result)
         env, _, _ = make_aigc_env()
         policy.eval()
         collector = Collector(policy, env)
