@@ -15,6 +15,7 @@ class SwarmManager:
         self._service_providers = [
             ServiceProvider(sid, 0) for sid in range(self._n_service_providers)]
         self._task_generator = TaskGenerator()
+        self._querying_user = None
         self.next_user_task()
 
     def check_finished(self, curr_time):
@@ -77,6 +78,18 @@ class SwarmManager:
     def most_availble_service_provider(self):
         return np.argmax([service_provider.available_t
                           for service_provider in self._service_providers])
+
+    @property
+    def best_reward_service_provider(self):
+        best_reward_ = 0.
+        best_sid_ = 0
+        for service_provider in self._service_providers:
+            if service_provider.is_enough(self._querying_user.task):
+                reward_ = service_provider.calculate_reward(self._querying_user.task)
+                if reward_ > best_reward_:
+                    best_reward_ = reward_
+                    best_sid_ = service_provider.id
+        return best_sid_
 
     def monitor(self):
         os.system("cls")
