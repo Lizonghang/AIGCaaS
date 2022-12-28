@@ -44,15 +44,7 @@ class SwarmManager:
 
         reward = service_provider.assign_task(self._querying_user.task, curr_time)
 
-        # uneven load penalty
-        penaly = self.load_imbalance()
-
-        return reward - penaly
-
-    def load_imbalance(self):
-        t_util = [service_provider.norm_available_t
-                  for service_provider in self._service_providers]
-        return np.abs(t_util - np.mean(t_util)).std()
+        return reward
 
     @property
     def vector(self):
