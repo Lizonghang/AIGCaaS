@@ -18,7 +18,7 @@ def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--algorithm', type=str, default='pg')
     parser.add_argument('--reward-threshold', type=float, default=None)
-    parser.add_argument('--buffer-size', type=int, default=20000)
+    parser.add_argument('--buffer-size', type=int, default=2000)
     parser.add_argument('--lr', type=float, default=1e-3)
     parser.add_argument('--gamma', type=float, default=0.95)
     parser.add_argument('--epoch', type=int, default=500)
@@ -30,11 +30,10 @@ def get_args():
     parser.add_argument('--training-num', type=int, default=20)
     parser.add_argument('--test-num', type=int, default=10)
     parser.add_argument('--logdir', type=str, default='log')
-    parser.add_argument('--render', type=float, default=0)
+    parser.add_argument('--render', type=float, default=0.01)
     parser.add_argument('--rew-norm', type=int, default=0)
     parser.add_argument(
-        '--device', type=str, default='cuda' if torch.cuda.is_available() else 'cpu'
-    )
+        '--device', type=str, default='cuda' if torch.cuda.is_available() else 'cpu')
     args = parser.parse_known_args()[0]
     return args
 
