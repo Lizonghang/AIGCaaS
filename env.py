@@ -64,12 +64,12 @@ def make_aigc_env(training_num=0, test_num=0):
     env.seed(SEED)
 
     train_envs, test_envs = None, None
-    if training_num > 1:
+    if training_num:
         train_envs = DummyVectorEnv(
             [lambda: AIGCEnv() for _ in range(training_num)])
         train_envs.seed(SEED)
 
-    if test_num > 1:
+    if test_num:
         test_envs = DummyVectorEnv(
             [lambda: AIGCEnv() for _ in range(test_num)])
         test_envs.seed(SEED)
