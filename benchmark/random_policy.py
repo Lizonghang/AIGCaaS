@@ -8,12 +8,11 @@ import numpy as np
 
 from datetime import datetime
 from torch.utils.tensorboard import SummaryWriter
-from tianshou.data import Collector, ReplayBuffer
+from tianshou.data import Collector
 from tianshou.policy import BasePolicy
 from tianshou.trainer import onpolicy_trainer
 from tianshou.utils import TensorboardLogger
 from tianshou.data import Batch
-from tianshou.utils import RunningMeanStd
 
 
 class RandomPolicy(BasePolicy):
@@ -37,8 +36,6 @@ class RandomPolicy(BasePolicy):
     def __init__(
             self,
             dist_fn: Type[torch.distributions.Distribution],
-            discount_factor: float = 0.99,
-            reward_normalization: bool = False,
             action_scaling: bool = True,
             action_bound_method: str = "clip",
             **kwargs: Any
@@ -48,37 +45,6 @@ class RandomPolicy(BasePolicy):
             action_bound_method=action_bound_method,
             **kwargs)
         self.dist_fn = dist_fn
-        assert 0.0 <= discount_factor <= 1.0, "discount factor should be in [0, 1]"
-        self._gamma = discount_factor
-        self._rew_norm = reward_normalization
-        self.ret_rms = RunningMeanStd()
-        self._eps = 1e-8
-
-    def process_fn(
-            self,
-            batch: Batch,
-            buffer: ReplayBuffer,
-            indices: np.ndarray
-    ) -> Batch:
-        r"""Compute the discounted returns for each transition.
-
-        .. math::
-            G_t = \sum_{i=t}^T \gamma^{i-t}r_i
-
-        where :math:`T` is the terminal time step, :math:`\gamma` is the
-        discount factor, :math:`\gamma \in [0, 1]`.
-        """
-        v_s_ = np.full(indices.shape, self.ret_rms.mean)
-        unnormalized_returns, _ = self.compute_episodic_return(
-            batch, buffer, indices, v_s_=v_s_, gamma=self._gamma, gae_lambda=1.0
-        )
-        if self._rew_norm:
-            batch.returns = (unnormalized_returns - self.ret_rms.mean) / \
-                            np.sqrt(self.ret_rms.var + self._eps)
-            self.ret_rms.update(unnormalized_returns)
-        else:
-            batch.returns = unnormalized_returns
-        return batch
 
     def forward(
             self,
@@ -117,7 +83,6 @@ class RandomPolicy(BasePolicy):
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--reward-threshold', type=float, default=None)
-    parser.add_argument('--gamma', type=float, default=0.95)
     parser.add_argument('--epoch', type=int, default=500)
     parser.add_argument('--step-per-epoch', type=int, default=100)
     parser.add_argument('--episode-per-collect', type=int, default=1)
@@ -127,9 +92,7 @@ def get_args():
     parser.add_argument('--test-num', type=int, default=10)
     parser.add_argument('--logdir', type=str, default='log')
     parser.add_argument('--render', type=float, default=0.01)
-    parser.add_argument('--rew-norm', type=int, default=0)
-    parser.add_argument(
-        '--device', type=str, default='cuda' if torch.cuda.is_available() else 'cpu')
+    parser.add_argument('--device', type=str, default='cpu')
     args = parser.parse_known_args()[0]
     return args
 
@@ -143,8 +106,6 @@ def main(args=get_args()):
     # random policy
     policy = RandomPolicy(
         torch.distributions.Categorical,
-        args.gamma,
-        reward_normalization=args.rew_norm,
         action_space=env.action_space,
         action_scaling=False,
         action_bound_method="",
