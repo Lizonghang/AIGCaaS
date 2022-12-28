@@ -43,7 +43,16 @@ class SwarmManager:
             f"Arrival time mismatch: {self._querying_user.task.arrival_time} != {curr_time}"
 
         reward = service_provider.assign_task(self._querying_user.task, curr_time)
-        return reward
+
+        # uneven load penalty
+        penaly = self.load_imbalance()
+
+        return reward - penaly
+
+    def load_imbalance(self):
+        t_util = [service_provider.norm_available_t
+                  for service_provider in self._service_providers]
+        return np.abs(t_util - np.mean(t_util)).std()
 
     @property
     def vector(self):

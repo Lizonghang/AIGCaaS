@@ -74,6 +74,7 @@ class ServiceProvider:
         return num_finished
 
     def assign_task(self, task, curr_time):
+        # delayed reward
         reward = REWARD(*self._reward_coefs, task.t)
 
         # No enough resources, server crashes

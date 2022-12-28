@@ -3,10 +3,10 @@ import os
 import pprint
 
 from env import make_aigc_env
-from torch.utils.tensorboard import SummaryWriter
-from datetime import datetime
 from config import *
 
+from datetime import datetime
+from torch.utils.tensorboard import SummaryWriter
 from tianshou.data import Collector, VectorReplayBuffer
 from tianshou.policy import PGPolicy
 from tianshou.trainer import onpolicy_trainer
