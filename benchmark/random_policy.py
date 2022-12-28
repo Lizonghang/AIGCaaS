@@ -21,7 +21,6 @@ class RandomPolicy(BasePolicy):
 
     :param dist_fn: distribution class for computing the action.
     :type dist_fn: Type[torch.distributions.Distribution]
-    :param float discount_factor: in [0, 1]. Default to 0.99.
     :param bool action_scaling: whether to map actions from range [-1, 1] to range
         [action_spaces.low, action_spaces.high]. Default to True.
     :param str action_bound_method: method to bound action to range [-1, 1], can be
