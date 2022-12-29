@@ -7,20 +7,28 @@ torch.manual_seed(0)
 
 # For service provider
 NUM_SERVICE_PROVIDERS = 20  # number of service providers
-TOTAL_T_RANGE = np.arange(500, 1000, step=100)  # range of total t_T available for service
+# TOTAL_T_RANGE = np.arange(300, 500, step=20)
+TOTAL_T_RANGE = np.arange(350, 510, step=10)
 # providers
 NUM_CPUS = 32  # number of logical cpu cores available
 NUM_GPUS = 8  # number of graphic cards available
 CPU_MEM = 128 * 2 ** 30  # total cpu memory available
 GPU_MEM = 24 * 2 ** 30  # gpu memory for each graphic card
 # Reward function for an inpainted image. The value is related to t_T in the diffusion algorithm.
-AX_RANGE = np.arange(30, 75, step=5)
-AY_RANGE = np.arange(0.25, 0.5, step=0.05)
-BX_RANGE = np.arange(120, 165, step=5)
-BY_RANGE = np.arange(0.65, 0.9, step=0.05)
+# AX_RANGE = np.arange(0, 100, step=10)
+# AY_RANGE = np.arange(0., 0.5, step=0.05)
+# BX_RANGE = np.arange(200, 260, step=10)
+# BY_RANGE = np.arange(0.5, 1., step=0.05)
+AX_RANGE = np.arange(0, 100, step=10)
+AY_RANGE = np.arange(0., 0.5, step=0.05)
+BX_RANGE = np.arange(150, 250, step=10)
+BY_RANGE = np.arange(0.5, 1., step=0.05)
+# REWARD = lambda ax, ay, bx, by, t: \
+#     (by - ay) / (bx - ax) * (t - ax) + ay if ax <= t <= bx else \
+#     (ay if t < ax else by)
 REWARD = lambda ax, ay, bx, by, t: \
-    (by - ay) / (bx - ax) * (t - ax) + ay if ax <= t <= bx else \
-    (ay if t < ax else by)
+    (by - ay) / (bx - ax) * (t - ax) if ax <= t <= bx else \
+    (0 if t < ax else by - ay)
 
 # For user
 NUM_USERS = 1000  # number of users to serve
