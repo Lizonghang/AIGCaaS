@@ -1,4 +1,5 @@
 import os
+import platform
 from user import User
 from service_provider import ServiceProvider
 from task import TaskGenerator
@@ -92,7 +93,8 @@ class SwarmManager:
         return best_sid_
 
     def monitor(self):
-        os.system("cls")
+        cmd = 'cls' if platform.system().lower() == "windows" else 'clear'
+        os.system(cmd)
         WIDTH = 98
         print()
 
