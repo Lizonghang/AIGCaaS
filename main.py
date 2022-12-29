@@ -69,6 +69,24 @@ def get_args():
     # parser.add_argument('--dual-clip', type=float, default=None)
     # parser.add_argument('--value-clip', type=int, default=0)
 
+    # for rainbow
+    # parser.add_argument('--eps-test', type=float, default=0.05)
+    # parser.add_argument('--eps-train', type=float, default=0.1)
+    # parser.add_argument('--lr', type=float, default=1e-3)
+    # parser.add_argument('--gamma', type=float, default=0.9)
+    # parser.add_argument('--num-atoms', type=int, default=51)
+    # parser.add_argument('--v-min', type=float, default=-10.)
+    # parser.add_argument('--v-max', type=float, default=10.)
+    # parser.add_argument('--noisy-std', type=float, default=0.1)
+    # parser.add_argument('--n-step', type=int, default=3)
+    # parser.add_argument('--target-update-freq', type=int, default=320)
+    # parser.add_argument('--step-per-collect', type=int, default=8)
+    # parser.add_argument('--update-per-step', type=float, default=0.125)
+    # parser.add_argument('--prioritized-replay', action="store_true", default=False)
+    # parser.add_argument('--alpha', type=float, default=0.6)
+    # parser.add_argument('--beta', type=float, default=0.4)
+    # parser.add_argument('--beta-final', type=float, default=1.)
+
     args = parser.parse_known_args()[0]
     return args
 
@@ -286,6 +304,117 @@ def run_ppo(env, train_envs, test_envs, logger, save_best_fn, stop_fn, args):
     return policy, result
 
 
+def run_rainbow(env, train_envs, test_envs, logger, save_best_fn, stop_fn, args):
+    from tianshou.data import PrioritizedVectorReplayBuffer
+    from tianshou.policy import RainbowPolicy
+    from tianshou.trainer import offpolicy_trainer
+    from tianshou.utils.net.discrete import NoisyLinear
+
+    def noisy_linear(x, y):
+        return NoisyLinear(x, y, args.noisy_std)
+
+    # model
+    net = Net(
+        args.state_shape,
+        args.action_shape,
+        hidden_sizes=args.hidden_sizes,
+        device=args.device,
+        softmax=True,
+        num_atoms=args.num_atoms,
+        dueling_param=(
+            {"linear_layer": noisy_linear},
+            {"linear_layer": noisy_linear})
+    )
+
+    # optimizer
+    optim = torch.optim.Adam(net.parameters(), lr=args.lr)
+
+    # policy
+    policy = RainbowPolicy(
+        net,
+        optim,
+        args.gamma,
+        args.num_atoms,
+        args.v_min,
+        args.v_max,
+        args.n_step,
+        target_update_freq=args.target_update_freq,
+    ).to(args.device)
+
+    # load a previous policy
+    if args.resume_path:
+        ckpt = torch.load(args.resume_path, map_location=args.device)
+        policy.load_state_dict(ckpt)
+        print("Loaded agent from: ", args.resume_path)
+
+    # buffer
+    if args.prioritized_replay:
+        buf = PrioritizedVectorReplayBuffer(
+            args.buffer_size,
+            buffer_num=len(train_envs),
+            alpha=args.alpha,
+            beta=args.beta,
+            weight_norm=True,
+        )
+    else:
+        buf = VectorReplayBuffer(
+            args.buffer_size,
+            buffer_num=len(train_envs)
+        )
+
+    # collector
+    train_collector = Collector(policy, train_envs, buf, exploration_noise=True)
+    test_collector = Collector(policy, test_envs, exploration_noise=True)
+    # policy.set_eps(1)
+    train_collector.collect(n_step=args.batch_size * args.training_num)
+
+    def train_fn(epoch, env_step):
+        # eps annealing
+        if env_step <= 10000:
+            policy.set_eps(args.eps_train)
+        elif env_step <= 50000:
+            eps = args.eps_train - (env_step - 10000) / \
+                  40000 * (0.9 * args.eps_train)
+            policy.set_eps(eps)
+        else:
+            policy.set_eps(0.1 * args.eps_train)
+        # beta annealing
+        if args.prioritized_replay:
+            if env_step <= 10000:
+                beta = args.beta
+            elif env_step <= 50000:
+                beta = args.beta - (env_step - 10000) / \
+                       40000 * (args.beta - args.beta_final)
+            else:
+                beta = args.beta_final
+            buf.set_beta(beta)
+
+    def test_fn(epoch, env_step):
+        policy.set_eps(args.eps_test)
+
+    # trainer
+    result = ""
+    if not args.watch:
+        result = offpolicy_trainer(
+            policy,
+            train_collector,
+            test_collector,
+            args.epoch,
+            args.step_per_epoch,
+            args.step_per_collect,
+            args.test_num,
+            args.batch_size,
+            update_per_step=args.update_per_step,
+            train_fn=train_fn,
+            test_fn=test_fn,
+            stop_fn=stop_fn,
+            save_best_fn=save_best_fn,
+            logger=logger
+        )
+
+    return policy, result
+
+
 def main(args=get_args()):
     env, train_envs, test_envs = make_aigc_env(args.training_num, args.test_num)
 
@@ -314,6 +443,9 @@ def main(args=get_args()):
             env, train_envs, test_envs, logger, save_best_fn, stop_fn, args)
     elif args.algorithm == 'ppo':
         policy, result = run_ppo(
+            env, train_envs, test_envs, logger, save_best_fn, stop_fn, args)
+    elif args.algorithm == 'rainbow':
+        policy, result = run_rainbow(
             env, train_envs, test_envs, logger, save_best_fn, stop_fn, args)
     else:
         raise NotImplementedError(f"Algorithm {args.algorithm} not supported")
