@@ -20,6 +20,7 @@ def get_args():
     parser.add_argument('--training-num', type=int, default=1)
     parser.add_argument('--test-num', type=int, default=1)
     parser.add_argument('--logdir', type=str, default='log')
+    parser.add_argument('--log-prefix', type=str, default='default')
     parser.add_argument('--render', type=float, default=0.01)
     parser.add_argument('--device', type=str, default='cpu')
     parser.add_argument('--watch', action='store_true')
@@ -54,7 +55,7 @@ def main(args=get_args()):
     # log
     time_now = datetime.now().strftime('%b%d-%H%M%S')
     root = path.dirname(path.dirname(path.abspath(__file__)))
-    log_path = os.path.join(root, args.logdir, 'aigcaas', 'crashavoid', time_now)
+    log_path = os.path.join(root, args.logdir, args.log_prefix, 'crashavoid', time_now)
     writer = SummaryWriter(log_path)
     logger = TensorboardLogger(writer)
 
