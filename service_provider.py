@@ -43,6 +43,9 @@ class ServiceProvider:
     def available_t(self):
         return self._total_t - self.used_t
 
+    def is_enough(self, task):
+        return self.available_t >= task.t
+
     @property
     def norm_total_t(self):
         max_t = TOTAL_T_RANGE[-1]
@@ -56,11 +59,27 @@ class ServiceProvider:
         num_serving = len(self._serving_tasks)
         num_crashed = len(self._terminated_tasks['crashed'])
         num_finished = len(self._terminated_tasks['finished'])
+        crashed_total_t = sum(
+            task.t for task in self._terminated_tasks['crashed']
+        )
+        crashed_total_reward = sum(
+            self.calculate_reward(task) for task in self._terminated_tasks['crashed']
+        )
+        finished_total_t = sum(
+            task.t for task in self._terminated_tasks['finished']
+        )
+        finished_total_reward = sum(
+            self.calculate_reward(task) for task in self._terminated_tasks['finished']
+        )
         return {
             "total": num_serving + num_crashed + num_finished,
             "serving": num_serving,
             "crashed": num_crashed,
-            "finished": num_finished
+            "finished": num_finished,
+            "crashed_total_t": crashed_total_t,
+            "crashed_total_reward": crashed_total_reward,
+            "finished_total_t": finished_total_t,
+            "finished_total_reward": finished_total_reward
         }
 
     def check_finished(self, curr_time):
@@ -73,9 +92,12 @@ class ServiceProvider:
                 num_finished += 1
         return num_finished
 
+    def calculate_reward(self, task):
+        # reward will be delayed in practice
+        return REWARD(*self._reward_coefs, task.t)
+
     def assign_task(self, task, curr_time):
-        # delayed reward
-        reward = REWARD(*self._reward_coefs, task.t)
+        reward = self.calculate_reward(task)
 
         # No enough resources, server crashes
         if task.t > self.available_t:
@@ -83,7 +105,7 @@ class ServiceProvider:
             for running_task_ in self._serving_tasks:
                 running_task_.crash(curr_time)
                 self._terminated_tasks['crashed'].append(running_task_)
-                penalty += (1 - running_task_.progress()) * CRASH_PENALTY_COEF
+                # penalty += (1 - running_task_.progress()) * CRASH_PENALTY_COEF
             self._serving_tasks.clear()
             self._num_crashed += 1
             return -penalty
