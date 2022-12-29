@@ -33,14 +33,3 @@ class User:
     def reset(self):
         self._task = None
         self._all_tasks.clear()
-
-
-if __name__ == "__main__":
-    from task import TaskGenerator
-
-    task_generator = TaskGenerator()
-    task = next(task_generator)[0]
-
-    user = User(0, 0)
-    user.add_task(task)
-    print(user.vector)

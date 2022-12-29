@@ -161,7 +161,3 @@ class SwarmManager:
         print(f"TOTAL USERS: {str(self._n_users)}".center(22), end='')
         print(f"TOTAL SERVING T: {str(self.total_t_serving)}".center(36))
         print("-" * WIDTH)
-
-
-if __name__ == "__main__":
-    manager = SwarmManager()

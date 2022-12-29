@@ -139,19 +139,3 @@ class ServiceProvider:
             'available_t': self.available_t,
             'num_crashed': self._num_crashed
         }
-
-
-if __name__ == "__main__":
-    from user import User
-    from task import TaskGenerator
-
-    service_provider = ServiceProvider(0, 0)
-
-    user = User(0, 0)
-    task_generator = TaskGenerator()
-    task = next(task_generator)[0]
-    user.add_task(task)
-
-    curr_time = 10000
-    reward = service_provider.assign_task(user.task, curr_time)
-    print(reward)

@@ -131,21 +131,3 @@ class TaskGenerator:
         self._task_id_counter += 1
         terminate = True if self._task_id_counter == self._total_task else False
         return task, terminate
-
-
-if __name__ == "__main__":
-    # Create a task generator
-    task_generator = TaskGenerator()
-
-    # Create 100 tasks that satisfy the arrival time of Poisson distribution
-    tasks = [next(task_generator)[0] for _ in range(100)]
-
-    # Test task type
-    task_type = TaskType(0)
-    print(task_type.one_hot)
-
-    # Test task.vector
-    task = tasks[0]
-    type_id = 0
-    task.set_task_type(type_id)
-    print(task.vector)
