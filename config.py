@@ -8,7 +8,8 @@ torch.manual_seed(0)
 # For service provider
 NUM_SERVICE_PROVIDERS = 20  # number of service providers
 # TOTAL_T_RANGE = np.arange(300, 500, step=20)
-TOTAL_T_RANGE = np.arange(350, 510, step=10)
+# TOTAL_T_RANGE = np.arange(350, 510, step=10)
+TOTAL_T_RANGE = np.arange(500, 1000, step=100)
 # providers
 NUM_CPUS = 32  # number of logical cpu cores available
 NUM_GPUS = 8  # number of graphic cards available
