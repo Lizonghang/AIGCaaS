@@ -128,26 +128,38 @@ class SwarmManager:
         total_serving = 0
         total_crashed = 0
         total_finished = 0
+        crashed_total_t = 0
+        crashed_total_reward = 0
+        finished_total_t = 0
+        finished_total_reward = 0
         for service_provider in self._service_providers:
             info = service_provider.task_summary()
             total_serving += info['serving']
             total_crashed += info['crashed']
             total_finished += info['finished']
             total_tasks += info['total']
+            crashed_total_t += info['crashed_total_t']
+            crashed_total_reward += info['crashed_total_reward']
+            finished_total_t += info['finished_total_t']
+            finished_total_reward += info['finished_total_reward']
         assert total_tasks == total_serving + total_crashed + total_finished
 
-        print(f"\033[7mTASK\033[0m".center(WIDTH // 5), end='')
-        print(f"TOTAL: {str(total_tasks)}".center(WIDTH // 5), end='')
-        print(f"SERVING: {str(total_serving)}".center(WIDTH // 5), end='')
-        print(f"\033[0;31mCRASHED: {str(total_crashed)}\033[0m".center(WIDTH // 5), end='')
-        print("    ", end='')
-        print(f"\033[0;32mFINISHED: {str(total_finished)}\033[0m".center(WIDTH // 5))
+        print(f"\033[7mTASK\033[0m".center(6), end='')
+        print(f"TOTAL: {total_tasks}".center(14), end='')
+        print(f"SERVING: {total_serving}".center(13), end='')
+        print(f"\033[0;31mCRASHED: {total_crashed} "
+              f"(T: {crashed_total_t}, R: {int(crashed_total_reward)})\033[0m"
+              .center(43), end='')
+        # print("    ", end='')
+        print(f"\033[0;32mFINISHED: {total_finished} "
+              f"(T: {finished_total_t}, R: {int(finished_total_reward)})\033[0m"
+              .center(45))
         print("-" * WIDTH)
 
         # user info
-        print(f"\033[7mUSER\033[0m".center(WIDTH // 5), end='')
-        print(f"TOTAL USERS: {str(self._n_users)}".center(WIDTH // 3), end='')
-        print(f"TOTAL SERVING T: {str(self.total_t_serving)}".center(WIDTH // 3))
+        print(f"\033[7mUSER\033[0m".center(6), end='')
+        print(f"TOTAL USERS: {str(self._n_users)}".center(22), end='')
+        print(f"TOTAL SERVING T: {str(self.total_t_serving)}".center(36))
         print("-" * WIDTH)
 
 
