@@ -294,7 +294,7 @@ def main(args=get_args()):
 
     # log
     time_now = datetime.now().strftime('%b%d-%H%M%S')
-    log_path = os.path.join(args.logdir, 'aigcaas', args.algorithm, time_now)
+    log_path = os.path.join(args.logdir, args.log_prefix, args.algorithm, time_now)
     writer = SummaryWriter(log_path)
     logger = TensorboardLogger(writer)
 
