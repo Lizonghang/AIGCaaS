@@ -455,7 +455,6 @@ def main(args=get_args()):
 
     # Watch the performance
     if __name__ == '__main__':
-        env, _, _ = make_aigc_env()
         policy.eval()
         collector = Collector(policy, env)
         result = collector.collect(n_episode=1, render=args.render)
