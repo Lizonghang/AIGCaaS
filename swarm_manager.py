@@ -152,7 +152,6 @@ class SwarmManager:
         print(f"\033[0;31mCRASHED: {total_crashed} "
               f"(T: {crashed_total_t}, R: {int(crashed_total_reward)})\033[0m"
               .center(43), end='')
-        # print("    ", end='')
         print(f"\033[0;32mFINISHED: {total_finished} "
               f"(T: {finished_total_t}, R: {int(finished_total_reward)})\033[0m"
               .center(45))
