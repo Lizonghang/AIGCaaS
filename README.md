@@ -1,2 +1,4 @@
 # AIGCaaS
-Official Implementation of AIGC-as-a-Service
+Official Implementation of "Mobile AI-Generated Content (AIGC)-as-a-Service in Wireless Networks".
+
+To be updated soon.
