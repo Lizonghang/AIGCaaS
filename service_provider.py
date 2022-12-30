@@ -105,7 +105,7 @@ class ServiceProvider:
             for running_task_ in self._serving_tasks:
                 running_task_.crash(curr_time)
                 self._terminated_tasks['crashed'].append(running_task_)
-                # penalty += (1 - running_task_.progress()) * CRASH_PENALTY_COEF
+                penalty += (1 - running_task_.progress()) * CRASH_PENALTY_COEF
             self._serving_tasks.clear()
             self._num_crashed += 1
             return -penalty
